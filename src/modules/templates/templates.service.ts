@@ -172,13 +172,52 @@ export class TemplatesService {
   ): Promise<BudgetTemplate> {
     const template = await this.findOne(id, companyId);
 
-    // Atualizar campos básicos
-    Object.assign(template, updateTemplateDto);
+    return await this.templateRepository.manager.transaction(async (manager) => {
+      // 1. Atualizar campos básicos do template
+      const { categories, ...templateData } = updateTemplateDto;
+      Object.assign(template, templateData);
+      const updatedTemplate = await manager.save(BudgetTemplate, template);
 
-    const updatedTemplate = await this.templateRepository.save(template);
+      // 2. Se categorias foram fornecidas, atualizar estrutura completa
+      if (categories && categories.length > 0) {
+        // Remover categorias e campos existentes
+        const existingCategories = await manager.find(BudgetCategory, {
+          where: { template_id: id }
+        });
 
-    // Retornar template atualizado com relacionamentos
-    return this.findOne(updatedTemplate.id, companyId);
+        for (const category of existingCategories) {
+          await manager.delete(BudgetField, { category_id: category.id });
+        }
+        await manager.delete(BudgetCategory, { template_id: id });
+
+        // Criar novas categorias e campos
+        for (const categoryDto of categories) {
+          const { fields, id: categoryId, ...categoryData } = categoryDto;
+          
+          const category = manager.create(BudgetCategory, {
+            ...categoryData,
+            template_id: updatedTemplate.id,
+          });
+
+          const savedCategory = await manager.save(BudgetCategory, category);
+
+          // Criar campos da categoria
+          for (const fieldDto of fields) {
+            const { id: fieldId, ...fieldData } = fieldDto;
+            
+            const field = manager.create(BudgetField, {
+              ...fieldData,
+              category_id: savedCategory.id,
+            });
+
+            await manager.save(BudgetField, field);
+          }
+        }
+      }
+
+      // Retornar template atualizado com relacionamentos
+      return this.findOne(updatedTemplate.id, companyId);
+    });
   }
 
   /**

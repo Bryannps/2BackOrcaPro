@@ -76,6 +76,10 @@ export class DefaultCalculationStrategy implements ICalculationStrategy {
 
     // Calcular campos calculados
     for (const field of category.fields) {
+      const fieldData = item.field_values[field.label];
+      
+      if (!fieldData) continue;
+      
       if (field.type === 'calculated' && field.calculation?.is_calculated) {
         const calculatedValue = this.executeFieldCalculation(
           field,
@@ -84,9 +88,26 @@ export class DefaultCalculationStrategy implements ICalculationStrategy {
         );
         calculations[field.label] = calculatedValue;
         itemAmount += calculatedValue || 0;
-      } else if (field.type === 'number' && item.field_values[field.id]) {
+      } else if (typeof fieldData === 'object' && fieldData.value !== undefined && fieldData.unit_cost !== undefined) {
+        // Calcular: quantidade * custo unitário
+        const value = Number(fieldData.value) || 0;
+        const unitCost = Number(fieldData.unit_cost) || 0;
+        const fieldTotal = value * unitCost;
+        
+        calculations[field.label] = {
+          value,
+          unit_cost: unitCost,
+          total: fieldTotal
+        };
+        itemAmount += fieldTotal;
+      } else if (field.type === 'number' && !isNaN(Number(fieldData))) {
         // Valores numéricos diretos
-        const numericValue = Number(item.field_values[field.id]) || 0;
+        const numericValue = Number(fieldData) || 0;
+        calculations[field.label] = numericValue;
+        itemAmount += numericValue;
+      } else if (fieldData && !isNaN(Number(fieldData))) {
+        // Tentar converter campos de texto que contêm números
+        const numericValue = Number(fieldData) || 0;
         calculations[field.label] = numericValue;
         itemAmount += numericValue;
       }

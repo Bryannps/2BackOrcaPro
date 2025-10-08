@@ -275,6 +275,11 @@ export class BudgetsService {
     companyId: string,
     calculateDto: CalculateBudgetDto,
   ): Promise<any> {
+    console.log('=== CALCULATE DEBUG ===');
+    console.log('Company ID:', companyId);
+    console.log('Template ID:', calculateDto.template_id);
+    console.log('Items recebidos:', JSON.stringify(calculateDto.items, null, 2));
+
     // Buscar template
     const template = await this.templateRepository.findOne({
       where: { id: calculateDto.template_id, company_id: companyId },
@@ -285,12 +290,18 @@ export class BudgetsService {
       throw new NotFoundException('Template não encontrado');
     }
 
+    console.log('Template encontrado:', template.name);
+    console.log('Template categories:', template.categories?.length || 0);
+
     // Calcular
     const result = await this.calculationEngine.calculate(
       template,
       calculateDto.items,
       companyId,
     );
+
+    console.log('Resultado do cálculo:', JSON.stringify(result, null, 2));
+    console.log('=== FIM CALCULATE DEBUG ===');
 
     return {
       success: true,
