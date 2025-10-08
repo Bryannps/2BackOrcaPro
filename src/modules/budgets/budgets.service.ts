@@ -258,7 +258,14 @@ export class BudgetsService {
       );
     }
 
-    await this.budgetRepository.remove(budget);
+    // Usar transação para deletar itens primeiro e depois o orçamento
+    await this.budgetRepository.manager.transaction(async (manager) => {
+      // Deletar primeiro os itens do orçamento
+      await manager.delete(BudgetItem, { budget_id: id });
+      
+      // Depois deletar o orçamento
+      await manager.delete(Budget, { id, company_id: companyId });
+    });
   }
 
   /**

@@ -189,8 +189,25 @@ export class TemplatesService {
 
     // TODO: Verificar se template está sendo usado em orçamentos
     // Se sim, marcar como inativo ao invés de deletar
-    
-    await this.templateRepository.remove(template);
+
+    // Usar transação para deletar em cascata
+    await this.templateRepository.manager.transaction(async (manager) => {
+      // 1. Buscar todas as categorias do template
+      const categories = await manager.find(BudgetCategory, {
+        where: { template_id: id }
+      });
+
+      // 2. Deletar primeiro os campos de cada categoria
+      for (const category of categories) {
+        await manager.delete(BudgetField, { category_id: category.id });
+      }
+
+      // 3. Deletar as categorias
+      await manager.delete(BudgetCategory, { template_id: id });
+
+      // 4. Finalmente deletar o template
+      await manager.delete(BudgetTemplate, { id, company_id: companyId });
+    });
   }
 
   /**
