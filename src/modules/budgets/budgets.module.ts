@@ -18,6 +18,8 @@ import { IndustrialCalculationStrategy } from './calculation/strategies/industri
 import { ServiceCalculationStrategy } from './calculation/strategies/service.strategy';
 import { CompaniesModule } from '../companies/companies.module';
 import { Company } from '../companies/entities/company.entity';
+import { PdfService } from '../../shared/services/pdf.service';
+import { EmailService } from '../../shared/services/email.service';
 
 @Module({
   imports: [
@@ -38,6 +40,8 @@ import { Company } from '../companies/entities/company.entity';
     DefaultCalculationStrategy,
     IndustrialCalculationStrategy,
     ServiceCalculationStrategy,
+    PdfService,
+    EmailService,
   ],
   exports: [BudgetsService, CalculationEngine],
 })

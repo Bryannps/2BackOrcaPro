@@ -21,6 +21,8 @@ import {
   CalculateBudgetDto,
 } from './dto/budget.dto';
 import { CalculationEngine } from './calculation/calculation.engine';
+import { PdfService } from '../../shared/services/pdf.service';
+import { EmailService } from '../../shared/services/email.service';
 
 @Injectable()
 export class BudgetsService {
@@ -32,6 +34,8 @@ export class BudgetsService {
     @InjectRepository(BudgetTemplate)
     private readonly templateRepository: Repository<BudgetTemplate>,
     private readonly calculationEngine: CalculationEngine,
+    private readonly pdfService: PdfService,
+    private readonly emailService: EmailService,
   ) {}
 
   /**
@@ -398,5 +402,45 @@ export class BudgetsService {
       total_value: parseFloat(stats.total_value) || 0,
       approved_value: parseFloat(stats.approved_value) || 0,
     };
+  }
+
+  /**
+   * Exportar orçamento como PDF
+   */
+  async exportToPdf(id: string, companyId: string): Promise<Buffer> {
+    const budget = await this.budgetRepository.findOne({
+      where: { id, company_id: companyId },
+      relations: ['company', 'template', 'template.categories', 'template.categories.fields', 'items'],
+    });
+
+    if (!budget) {
+      throw new NotFoundException('Orçamento não encontrado');
+    }
+
+    return await this.pdfService.generateBudgetPdf(budget);
+  }
+
+  /**
+   * Enviar orçamento por email
+   */
+  async sendByEmail(
+    id: string,
+    companyId: string,
+    emailData: { to: string; subject?: string; message?: string },
+  ): Promise<void> {
+    const budget = await this.budgetRepository.findOne({
+      where: { id, company_id: companyId },
+      relations: ['company', 'template', 'template.categories', 'template.categories.fields', 'items'],
+    });
+
+    if (!budget) {
+      throw new NotFoundException('Orçamento não encontrado');
+    }
+
+    // Gerar PDF
+    const pdfBuffer = await this.pdfService.generateBudgetPdf(budget);
+
+    // Enviar por email
+    await this.emailService.sendBudgetEmail(budget, pdfBuffer, emailData);
   }
 }

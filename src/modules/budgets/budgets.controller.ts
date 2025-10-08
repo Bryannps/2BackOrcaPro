@@ -15,6 +15,7 @@ import {
   Query,
   UseGuards,
   Request,
+  Response,
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
@@ -247,6 +248,48 @@ export class BudgetsController {
       success: true,
       message: 'Estatísticas obtidas com sucesso',
       data: stats,
+    };
+  }
+
+  /**
+   * Exportar orçamento como PDF
+   * GET /api/budgets/:id/export/pdf
+   */
+  @Get(':id/export/pdf')
+  async exportToPdf(
+    @Request() req,
+    @Param('id') id: string,
+    @Response() res,
+  ) {
+    const pdfBuffer = await this.budgetsService.exportToPdf(id, req.user.id);
+    
+    res.set({
+      'Content-Type': 'application/pdf',
+      'Content-Disposition': `attachment; filename="orcamento-${id}.pdf"`,
+      'Content-Length': pdfBuffer.length,
+    });
+    
+    res.send(pdfBuffer);
+  }
+
+  /**
+   * Enviar orçamento por email
+   * POST /api/budgets/:id/send-email
+   */
+  @Post(':id/send-email')
+  async sendByEmail(
+    @Request() req,
+    @Param('id') id: string,
+    @Body() emailData: { to: string; subject?: string; message?: string },
+  ): Promise<{
+    success: boolean;
+    message: string;
+  }> {
+    await this.budgetsService.sendByEmail(id, req.user.id, emailData);
+
+    return {
+      success: true,
+      message: 'Orçamento enviado por email com sucesso',
     };
   }
 }
