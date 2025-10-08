@@ -115,6 +115,7 @@ export class BudgetsService {
 
     const queryBuilder = this.budgetRepository
       .createQueryBuilder('budget')
+      .leftJoinAndSelect('budget.company', 'company')
       .leftJoinAndSelect('budget.template', 'template')
       .leftJoinAndSelect('budget.items', 'item')
       .leftJoinAndSelect('item.category', 'category')
@@ -160,6 +161,7 @@ export class BudgetsService {
     const budget = await this.budgetRepository.findOne({
       where: { id, company_id: companyId },
       relations: [
+        'company',
         'template',
         'template.categories',
         'template.categories.fields',
