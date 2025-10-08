@@ -200,6 +200,10 @@ export class BudgetsService {
         budget.title = updateBudgetDto.title;
       }
 
+      if (updateBudgetDto.description !== undefined) {
+        budget.description = updateBudgetDto.description;
+      }
+
       if (updateBudgetDto.status) {
         budget.status = updateBudgetDto.status;
       }
@@ -223,6 +227,9 @@ export class BudgetsService {
           metadata: calculationResult.metadata,
         };
 
+        // Salvar budget primeiro
+        await manager.save(budget);
+
         // Remover items antigos
         await manager.delete(BudgetItem, { budget_id: budget.id });
 
@@ -238,9 +245,10 @@ export class BudgetsService {
         );
 
         await manager.save(BudgetItem, budgetItems);
+      } else {
+        // Se não há items para atualizar, apenas salvar o budget
+        await manager.save(budget);
       }
-
-      await manager.save(budget);
       return this.findOne(budget.id, companyId);
     });
   }

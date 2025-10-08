@@ -54,6 +54,11 @@ export class UpdateBudgetDto {
   title?: string;
 
   @IsOptional()
+  @IsString({ message: 'descrição deve ser uma string' })
+  @MaxLength(1000, { message: 'descrição não pode exceder 1000 caracteres' })
+  description?: string;
+
+  @IsOptional()
   @IsEnum(['draft', 'sent', 'approved', 'rejected'], {
     message: 'status deve ser: draft, sent, approved ou rejected',
   })

@@ -26,6 +26,9 @@ export class Budget {
   @Column({ length: 255, nullable: false })
   title: string;
 
+  @Column({ type: 'text', nullable: true })
+  description?: string;
+
   @Column({
     type: 'enum',
     enum: ['draft', 'sent', 'approved', 'rejected'],
